@@ -38,7 +38,7 @@ cors.install = () => {
   cors.remove();
   chrome.webRequest.onHeadersReceived.addListener(cors.onHeadersReceived, {
     urls: ['<all_urls>']
-  }, ['blocking', 'responseHeaders']);
+  }, ['blocking', 'responseHeaders', 'extraHeaders']);
 };
 cors.remove = () => {
   chrome.webRequest.onHeadersReceived.removeListener(cors.onHeadersReceived);
