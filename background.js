@@ -1,13 +1,13 @@
 'use strict';
 
-var prefs = {
+const prefs = {
   'enabled': false,
   'overwrite-origin': true,
   'overwrite-methods': true,
   'methods': ['GET', 'PUT', 'POST', 'DELETE', 'HEAD', 'OPTIONS', 'PATCH']
 };
 
-var cors = {};
+const cors = {};
 cors.onHeadersReceived = ({responseHeaders}) => {
   if (
     prefs['overwrite-origin'] === true ||
@@ -77,7 +77,12 @@ chrome.browserAction.onClicked.addListener(() => chrome.storage.local.set({
 
 chrome.contextMenus.onClicked.addListener(info => {
   const ps = {};
-  if (info.menuItemId === 'overwrite-origin' || info.menuItemId === 'overwrite-methods') {
+  if (info.menuItemId === 'test-cors') {
+    chrome.tabs.create({
+      url: 'https://webbrowsertools.com/test-cors/'
+    });
+  }
+  else if (info.menuItemId === 'overwrite-origin' || info.menuItemId === 'overwrite-methods') {
     ps[info.menuItemId] = info.checked;
   }
   else {
@@ -92,7 +97,6 @@ chrome.contextMenus.onClicked.addListener(info => {
     }
     ps.methods = prefs.methods;
   }
-  console.log(ps);
   chrome.storage.local.set(ps);
 });
 
@@ -153,8 +157,16 @@ chrome.storage.local.get(prefs, ps => {
     parentId: menu
   });
 
+  chrome.contextMenus.create({
+    title: 'Test CORS',
+    id: 'test-cors',
+    contexts: ['browser_action']
+  });
+
   cors.onCommand();
 });
+
+// FAQs and Feedback
 {
   const {onInstalled, setUninstallURL, getManifest} = chrome.runtime;
   const {name, version} = getManifest();
