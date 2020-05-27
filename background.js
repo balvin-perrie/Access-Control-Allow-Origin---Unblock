@@ -3,42 +3,93 @@
 const prefs = {
   'enabled': false,
   'overwrite-origin': true,
-  'overwrite-methods': true,
-  'methods': ['GET', 'PUT', 'POST', 'DELETE', 'HEAD', 'OPTIONS', 'PATCH']
+  'methods': ['GET', 'PUT', 'POST', 'DELETE', 'HEAD', 'OPTIONS', 'PATCH'],
+  'remove-x-frame': true,
+  'allow-credentials': true,
+  'allow-headers-value': '*',
+  'expose-headers-value': '*',
+  'allow-headers': true
 };
 
 const cors = {};
 cors.onHeadersReceived = ({responseHeaders}) => {
-  if (
-    prefs['overwrite-origin'] === true ||
-    responseHeaders.find(({name}) => name.toLowerCase() === 'access-control-allow-origin') === undefined
-  ) {
-    responseHeaders.push({
-      'name': 'Access-Control-Allow-Origin',
-      'value': '*'
-    });
+  if (prefs['overwrite-origin'] === true) {
+    const o = responseHeaders.find(({name}) => name.toLowerCase() === 'access-control-allow-origin');
+    if (o) {
+      o.value = '*';
+    }
+    else {
+      responseHeaders.push({
+        'name': 'Access-Control-Allow-Origin',
+        'value': '*'
+      });
+    }
   }
-  if (
-    prefs['overwrite-methods'] === true ||
-    responseHeaders.find(({name}) => name.toLowerCase() === 'access-control-allow-methods') === undefined
-  ) {
-    responseHeaders.push({
-      'name': 'Access-Control-Allow-Origin',
-      'value': '*'
-    });
-    responseHeaders.push({
-      'name': 'Access-Control-Allow-Methods',
-      'value': prefs.methods.join(', ')
-    });
+  if (prefs.methods.length > 3) { // GET, POST, HEAD are mandatory
+    const o = responseHeaders.find(({name}) => name.toLowerCase() === 'access-control-allow-methods');
+    if (o) {
+      o.value = prefs.methods.join(', ');
+    }
+    else {
+      responseHeaders.push({
+        'name': 'Access-Control-Allow-Methods',
+        'value': prefs.methods.join(', ')
+      });
+    }
   }
-
+  if (prefs['allow-credentials'] === true) {
+    const o = responseHeaders.find(({name}) => name.toLowerCase() === 'access-control-allow-credentials');
+    if (o) {
+      o.value = 'true';
+    }
+    else {
+      responseHeaders.push({
+        'name': 'Access-Control-Allow-Credentials',
+        'value': 'true'
+      });
+    }
+  }
+  if (prefs['allow-headers'] === true) {
+    const o = responseHeaders.find(({name}) => name.toLowerCase() === 'access-control-allow-headers');
+    if (o) {
+      o.value = prefs['allow-headers-value'];
+    }
+    else {
+      responseHeaders.push({
+        'name': 'Access-Control-Allow-Headers',
+        'value': prefs['allow-headers-value']
+      });
+    }
+  }
+  if (prefs['allow-headers'] === true) {
+    const o = responseHeaders.find(({name}) => name.toLowerCase() === 'access-control-expose-headers');
+    if (o) {
+      o.value = prefs['expose-headers-value'];
+    }
+    else {
+      responseHeaders.push({
+        'name': 'Access-Control-Expose-Headers',
+        'value': prefs['expose-headers-value']
+      });
+    }
+  }
+  if (prefs['remove-x-frame'] === true) {
+    const i = responseHeaders.findIndex(({name}) => name.toLowerCase() === 'x-frame-options');
+    if (i !== -1) {
+      responseHeaders.splice(i, 1);
+    }
+  }
   return {responseHeaders};
 };
 cors.install = () => {
   cors.remove();
+  const extra = ['blocking', 'responseHeaders'];
+  if (/Firefox/.test(navigator.userAgent) === false) {
+    extra.push('extraHeaders');
+  }
   chrome.webRequest.onHeadersReceived.addListener(cors.onHeadersReceived, {
     urls: ['<all_urls>']
-  }, ['blocking', 'responseHeaders', 'extraHeaders']);
+  }, extra);
 };
 cors.remove = () => {
   chrome.webRequest.onHeadersReceived.removeListener(cors.onHeadersReceived);
@@ -75,22 +126,22 @@ chrome.browserAction.onClicked.addListener(() => chrome.storage.local.set({
   enabled: prefs.enabled === false
 }));
 
-chrome.contextMenus.onClicked.addListener(info => {
+chrome.contextMenus.onClicked.addListener(({menuItemId, checked}) => {
   const ps = {};
-  if (info.menuItemId === 'test-cors') {
+  if (menuItemId === 'test-cors') {
     chrome.tabs.create({
       url: 'https://webbrowsertools.com/test-cors/'
     });
   }
-  else if (info.menuItemId === 'overwrite-origin' || info.menuItemId === 'overwrite-methods') {
-    ps[info.menuItemId] = info.checked;
+  else if (['overwrite-origin', 'remove-x-frame', 'allow-credentials', 'allow-headers'].indexOf(menuItemId) !== -1) {
+    ps[menuItemId] = checked;
   }
   else {
-    if (info.checked) {
-      prefs.methods.push(info.menuItemId);
+    if (checked) {
+      prefs.methods.push(menuItemId);
     }
     else {
-      const index = prefs.methods.indexOf(info.menuItemId);
+      const index = prefs.methods.indexOf(menuItemId);
       if (index !== -1) {
         prefs.methods.splice(index, 1);
       }
@@ -111,16 +162,9 @@ chrome.storage.local.get(prefs, ps => {
     contexts: ['browser_action'],
     checked: prefs['overwrite-origin']
   });
-  chrome.contextMenus.create({
-    title: 'Overwrite access-control-allow-methods',
-    type: 'checkbox',
-    id: 'overwrite-methods',
-    contexts: ['browser_action'],
-    checked: prefs['overwrite-methods']
-  });
 
   const menu = chrome.contextMenus.create({
-    title: 'Methods',
+    title: 'Access-Control-Allow-Methods Methods:',
     contexts: ['browser_action']
   });
 
@@ -158,6 +202,30 @@ chrome.storage.local.get(prefs, ps => {
   });
 
   chrome.contextMenus.create({
+    title: 'Remove X-Frame-Options',
+    type: 'checkbox',
+    id: 'remove-x-frame',
+    contexts: ['browser_action'],
+    checked: prefs['remove-x-frame']
+  });
+
+  chrome.contextMenus.create({
+    title: 'Enable Access-Control-Allow-Credentials',
+    type: 'checkbox',
+    id: 'allow-credentials',
+    contexts: ['browser_action'],
+    checked: prefs['allow-credentials']
+  });
+
+  chrome.contextMenus.create({
+    title: 'Enable Access-Control-[Allow/Expose]-Headers',
+    type: 'checkbox',
+    id: 'allow-headers',
+    contexts: ['browser_action'],
+    checked: prefs['allow-headers']
+  });
+
+  chrome.contextMenus.create({
     title: 'Test CORS',
     id: 'test-cors',
     contexts: ['browser_action']
@@ -166,29 +234,29 @@ chrome.storage.local.get(prefs, ps => {
   cors.onCommand();
 });
 
-// FAQs and Feedback
+/* FAQs & Feedback */
 {
-  const {onInstalled, setUninstallURL, getManifest} = chrome.runtime;
-  const {name, version} = getManifest();
-  const page = getManifest().homepage_url;
-  onInstalled.addListener(({reason, previousVersion}) => {
-    chrome.storage.local.get({
-      'faqs': true,
-      'last-update': 0
-    }, prefs => {
-      if (reason === 'install' || (prefs.faqs && reason === 'update')) {
-        const doUpdate = (Date.now() - prefs['last-update']) / 1000 / 60 / 60 / 24 > 45;
-        if (doUpdate && previousVersion !== version) {
-          chrome.tabs.create({
-            url: page + '?version=' + version +
-              (previousVersion ? '&p=' + previousVersion : '') +
-              '&type=' + reason,
-            active: reason === 'install'
-          });
-          chrome.storage.local.set({'last-update': Date.now()});
+  const {management, runtime: {onInstalled, setUninstallURL, getManifest}, storage, tabs} = chrome;
+  if (navigator.webdriver !== true) {
+    const page = getManifest().homepage_url;
+    const {name, version} = getManifest();
+    onInstalled.addListener(({reason, previousVersion}) => {
+      management.getSelf(({installType}) => installType === 'normal' && storage.local.get({
+        'faqs': true,
+        'last-update': 0
+      }, prefs => {
+        if (reason === 'install' || (prefs.faqs && reason === 'update')) {
+          const doUpdate = (Date.now() - prefs['last-update']) / 1000 / 60 / 60 / 24 > 45;
+          if (doUpdate && previousVersion !== version) {
+            tabs.create({
+              url: page + '?version=' + version + (previousVersion ? '&p=' + previousVersion : '') + '&type=' + reason,
+              active: reason === 'install'
+            });
+            storage.local.set({'last-update': Date.now()});
+          }
         }
-      }
+      }));
     });
-  });
-  setUninstallURL(page + '?rd=feedback&name=' + encodeURIComponent(name) + '&version=' + version);
+    setUninstallURL(page + '?rd=feedback&name=' + encodeURIComponent(name) + '&version=' + version);
+  }
 }

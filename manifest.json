@@ -1,6 +1,6 @@
 {
   "manifest_version": 2,
-  "version": "0.1.2",
+  "version": "0.1.4",
   "name": "CORS Unblock",
   "description": "No more CORS error by appending 'Access-Control-Allow-Origin: *' header to local and remote web requests when enabled",
   "permissions": [
@@ -17,19 +17,12 @@
     "38": "data/icons/38.png",
     "48": "data/icons/48.png",
     "64": "data/icons/64.png",
-    "128": "data/icons/128.png"
+    "128": "data/icons/128.png",
+    "256": "data/icons/256.png",
+    "512": "data/icons/512.png"
   },
   "homepage_url": "https://add0n.com/access-control.html",
-  "browser_action":{
-    "default_icon": {
-      "16": "data/icons/16.png",
-      "19": "data/icons/19.png",
-      "32": "data/icons/32.png",
-      "38": "data/icons/38.png",
-      "48": "data/icons/48.png",
-      "64": "data/icons/64.png"
-    }
-  },
+  "browser_action":{},
   "background": {
     "scripts": [
       "background.js"
