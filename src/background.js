@@ -3,25 +3,62 @@
 const prefs = {
   'enabled': false,
   'overwrite-origin': true,
-  'methods': ['GET', 'PUT', 'POST', 'DELETE', 'HEAD', 'OPTIONS', 'PATCH'],
+  'methods': ['GET', 'PUT', 'POST', 'DELETE', 'HEAD', 'OPTIONS', 'PATCH', 'PROPFIND', 'PROPPATCH', 'MKCOL', 'COPY', 'MOVE', 'LOCK'],
   'remove-x-frame': true,
   'allow-credentials': true,
   'allow-headers-value': '*',
+  'allow-origin-value': '*',
   'expose-headers-value': '*',
-  'allow-headers': true
+  'allow-headers': true,
+  'unblock-initiator': true
 };
 
+const redirects = {};
+chrome.tabs.onRemoved.addListener(tabId => delete redirects[tabId]);
 const cors = {};
-cors.onHeadersReceived = ({responseHeaders}) => {
+
+cors.onBeforeRedirect = d => {
+  if (d.type === 'main_frame') {
+    return;
+  }
+  redirects[d.tabId] = redirects[d.tabId] || {};
+  redirects[d.tabId][d.requestId] = true;
+};
+
+cors.onHeadersReceived = d => {
+  if (d.type === 'main_frame') {
+    return;
+  }
+  const {initiator, originUrl, responseHeaders, method, requestId, tabId} = d;
+  let origin = '';
+
+  const redirect = redirects[tabId] ? redirects[tabId][requestId] : false;
+  if (prefs['unblock-initiator'] && redirect !== true) {
+    try {
+      const o = new URL(initiator || originUrl);
+      origin = o.origin;
+    }
+    catch (e) {
+      console.warn('cannot extract origin for initiator', initiator);
+    }
+  }
+  else {
+    origin = '*';
+  }
+  if (redirects[tabId]) {
+    delete redirects[tabId][requestId];
+  }
+
   if (prefs['overwrite-origin'] === true) {
     const o = responseHeaders.find(({name}) => name.toLowerCase() === 'access-control-allow-origin');
+
     if (o) {
-      o.value = '*';
+      o.value = origin || prefs['allow-origin-value'];
     }
     else {
       responseHeaders.push({
         'name': 'Access-Control-Allow-Origin',
-        'value': '*'
+        'value': origin || prefs['allow-origin-value']
       });
     }
   }
@@ -49,6 +86,7 @@ cors.onHeadersReceived = ({responseHeaders}) => {
       });
     }
   }
+  // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Headers
   if (prefs['allow-headers'] === true) {
     const o = responseHeaders.find(({name}) => name.toLowerCase() === 'access-control-allow-headers');
     if (o) {
@@ -90,9 +128,13 @@ cors.install = () => {
   chrome.webRequest.onHeadersReceived.addListener(cors.onHeadersReceived, {
     urls: ['<all_urls>']
   }, extra);
+  chrome.webRequest.onBeforeRedirect.addListener(cors.onBeforeRedirect, {
+    urls: ['<all_urls>']
+  });
 };
 cors.remove = () => {
   chrome.webRequest.onHeadersReceived.removeListener(cors.onHeadersReceived);
+  chrome.webRequest.onBeforeRedirect.removeListener(cors.onBeforeRedirect);
 };
 
 cors.onCommand = () => {
@@ -133,7 +175,7 @@ chrome.contextMenus.onClicked.addListener(({menuItemId, checked}) => {
       url: 'https://webbrowsertools.com/test-cors/'
     });
   }
-  else if (['overwrite-origin', 'remove-x-frame', 'allow-credentials', 'allow-headers'].indexOf(menuItemId) !== -1) {
+  else if (['overwrite-origin', 'remove-x-frame', 'allow-credentials', 'allow-headers', 'unblock-initiator'].indexOf(menuItemId) !== -1) {
     ps[menuItemId] = checked;
   }
   else {
@@ -156,57 +198,17 @@ chrome.storage.local.get(prefs, ps => {
   Object.assign(prefs, ps);
   /* context menu */
   chrome.contextMenus.create({
-    title: 'Overwrite access-control-allow-origin',
-    type: 'checkbox',
-    id: 'overwrite-origin',
-    contexts: ['browser_action'],
-    checked: prefs['overwrite-origin']
-  });
-
-  const menu = chrome.contextMenus.create({
-    title: 'Access-Control-Allow-Methods Methods:',
+    title: 'Test CORS',
+    id: 'test-cors',
     contexts: ['browser_action']
   });
 
   chrome.contextMenus.create({
-    title: 'PUT',
+    title: 'Enable Access-Control-Allow-Origin',
     type: 'checkbox',
-    id: 'PUT',
+    id: 'overwrite-origin',
     contexts: ['browser_action'],
-    checked: prefs.methods.indexOf('PUT') !== -1,
-    parentId: menu
-  });
-  chrome.contextMenus.create({
-    title: 'DELETE',
-    type: 'checkbox',
-    id: 'DELETE',
-    contexts: ['browser_action'],
-    checked: prefs.methods.indexOf('DELETE') !== -1,
-    parentId: menu
-  });
-  chrome.contextMenus.create({
-    title: 'OPTIONS',
-    type: 'checkbox',
-    id: 'OPTIONS',
-    contexts: ['browser_action'],
-    checked: prefs.methods.indexOf('OPTIONS') !== -1,
-    parentId: menu
-  });
-  chrome.contextMenus.create({
-    title: 'PATCH',
-    type: 'checkbox',
-    id: 'PATCH',
-    contexts: ['browser_action'],
-    checked: prefs.methods.indexOf('PATCH') !== -1,
-    parentId: menu
-  });
-
-  chrome.contextMenus.create({
-    title: 'Remove X-Frame-Options',
-    type: 'checkbox',
-    id: 'remove-x-frame',
-    contexts: ['browser_action'],
-    checked: prefs['remove-x-frame']
+    checked: prefs['overwrite-origin']
   });
 
   chrome.contextMenus.create({
@@ -225,11 +227,44 @@ chrome.storage.local.get(prefs, ps => {
     checked: prefs['allow-headers']
   });
 
-  chrome.contextMenus.create({
-    title: 'Test CORS',
-    id: 'test-cors',
+  const extra = chrome.contextMenus.create({
+    title: 'Extra Options',
     contexts: ['browser_action']
   });
+
+  chrome.contextMenus.create({
+    title: 'Remove X-Frame-Options',
+    type: 'checkbox',
+    id: 'remove-x-frame',
+    contexts: ['browser_action'],
+    checked: prefs['remove-x-frame'],
+    parentId: extra
+  });
+  chrome.contextMenus.create({
+    title: 'Only Unblock Initiator',
+    type: 'checkbox',
+    id: 'unblock-initiator',
+    contexts: ['browser_action'],
+    checked: prefs['unblock-initiator'],
+    parentId: extra
+  });
+
+
+  const menu = chrome.contextMenus.create({
+    title: 'Access-Control-Allow-Methods Methods:',
+    contexts: ['browser_action'],
+    parentId: extra
+  });
+  for (const method of ['PUT', 'DELETE', 'OPTIONS', 'PATCH', 'PROPFIND', 'PROPPATCH', 'MKCOL', 'COPY', 'MOVE', 'LOCK']) {
+    chrome.contextMenus.create({
+      title: method,
+      type: 'checkbox',
+      id: method,
+      contexts: ['browser_action'],
+      checked: prefs.methods.indexOf(method) !== -1,
+      parentId: menu
+    });
+  }
 
   cors.onCommand();
 });

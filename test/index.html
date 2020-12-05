@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Page</title>
+</head>
+<body>
+  <iframe src="https://www.google.com/"></iframe>
+  <script type="text/javascript">
+
+    fetch('https://www.google.com/').then(r => {
+      console.log(r.headers.get('Access-Control-Allow-Headers'))
+
+      console.log(r.headers.get('Content-Range'))
+      console.log(r.headers.get('Accept-Range'))
+
+      console.log(r.headers.get('Date'))
+      console.log(r.headers.get('Content-Type'))
+    });
+
+    // redirect
+    fetch('http://www.w3schools.com/').then(r => r.text()).then(() => console.log('ok'));
+  </script>
+</body>
+</html>
