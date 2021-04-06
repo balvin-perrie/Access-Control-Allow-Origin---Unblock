@@ -1,5 +1,10 @@
 'use strict';
 
+// Tests:
+// https://mail.google.com/mail/u/0/#inbox
+// https://drive.google.com/drive/my-drive
+
+
 const prefs = {
   'enabled': false,
   'overwrite-origin': true,
@@ -9,7 +14,7 @@ const prefs = {
   'allow-headers-value': '*',
   'allow-origin-value': '*',
   'expose-headers-value': '*',
-  'allow-headers': true,
+  'allow-headers': false,
   'unblock-initiator': true
 };
 
@@ -29,7 +34,7 @@ cors.onHeadersReceived = d => {
   if (d.type === 'main_frame') {
     return;
   }
-  const {initiator, originUrl, responseHeaders, method, requestId, tabId} = d;
+  const {initiator, originUrl, responseHeaders, requestId, tabId} = d;
   let origin = '';
 
   const redirect = redirects[tabId] ? redirects[tabId][requestId] : false;
@@ -53,7 +58,9 @@ cors.onHeadersReceived = d => {
     const o = responseHeaders.find(({name}) => name.toLowerCase() === 'access-control-allow-origin');
 
     if (o) {
-      o.value = origin || prefs['allow-origin-value'];
+      if (o.value !== '*') {
+        o.value = origin || prefs['allow-origin-value'];
+      }
     }
     else {
       responseHeaders.push({
@@ -65,7 +72,7 @@ cors.onHeadersReceived = d => {
   if (prefs.methods.length > 3) { // GET, POST, HEAD are mandatory
     const o = responseHeaders.find(({name}) => name.toLowerCase() === 'access-control-allow-methods');
     if (o) {
-      o.value = prefs.methods.join(', ');
+      o.value = [...new Set([...prefs.methods, ...o.value.split(/\s*,\s*/)])].join(', ');
     }
     else {
       responseHeaders.push({
@@ -74,16 +81,21 @@ cors.onHeadersReceived = d => {
       });
     }
   }
+  // The value of the 'Access-Control-Allow-Origin' header in the response must not be the wildcard '*'
+  // when the request's credentials mode is 'include'.
   if (prefs['allow-credentials'] === true) {
-    const o = responseHeaders.find(({name}) => name.toLowerCase() === 'access-control-allow-credentials');
-    if (o) {
-      o.value = 'true';
-    }
-    else {
-      responseHeaders.push({
-        'name': 'Access-Control-Allow-Credentials',
-        'value': 'true'
-      });
+    const o = responseHeaders.find(({name}) => name.toLowerCase() === 'access-control-allow-origin');
+    if (!o || o.value !== '*') {
+      const o = responseHeaders.find(({name}) => name.toLowerCase() === 'access-control-allow-credentials');
+      if (o) {
+        o.value = 'true';
+      }
+      else {
+        responseHeaders.push({
+          'name': 'Access-Control-Allow-Credentials',
+          'value': 'true'
+        });
+      }
     }
   }
   // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Headers
@@ -190,7 +202,19 @@ chrome.contextMenus.onClicked.addListener(({menuItemId, checked}) => {
     }
     ps.methods = prefs.methods;
   }
-  chrome.storage.local.set(ps);
+
+  chrome.storage.local.set(ps, () => chrome.storage.local.get({
+    'allow-credentials': true,
+    'unblock-initiator': true
+  }, prefs => {
+    if (prefs['allow-credentials'] && prefs['unblock-initiator'] === false) {
+      alert(`Conflicting options:
+The value of the 'Access-Control-Allow-Origin' header must not be '*' when the credentials mode is 'include'
+
+How to Fix:
+Either disable sending credentials or enable allow origin only for the request initiator`);
+    }
+  }));
 });
 
 /* init */
@@ -283,10 +307,11 @@ chrome.storage.local.get(prefs, ps => {
         if (reason === 'install' || (prefs.faqs && reason === 'update')) {
           const doUpdate = (Date.now() - prefs['last-update']) / 1000 / 60 / 60 / 24 > 45;
           if (doUpdate && previousVersion !== version) {
-            tabs.create({
+            tabs.query({active: true, currentWindow: true}, tbs => tabs.create({
               url: page + '?version=' + version + (previousVersion ? '&p=' + previousVersion : '') + '&type=' + reason,
-              active: reason === 'install'
-            });
+              active: reason === 'install',
+              ...(tbs && tbs.length && {index: tbs[0].index + 1})
+            }));
             storage.local.set({'last-update': Date.now()});
           }
         }
