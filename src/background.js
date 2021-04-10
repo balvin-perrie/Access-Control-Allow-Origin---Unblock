@@ -5,10 +5,12 @@
 // https://drive.google.com/drive/my-drive
 
 
+const DEFAULT_METHODS = ['GET', 'PUT', 'POST', 'DELETE', 'HEAD', 'OPTIONS', 'PATCH', 'PROPFIND', 'PROPPATCH', 'MKCOL', 'COPY', 'MOVE', 'LOCK'];
+
 const prefs = {
   'enabled': false,
   'overwrite-origin': true,
-  'methods': ['GET', 'PUT', 'POST', 'DELETE', 'HEAD', 'OPTIONS', 'PATCH', 'PROPFIND', 'PROPPATCH', 'MKCOL', 'COPY', 'MOVE', 'LOCK'],
+  'methods': DEFAULT_METHODS,
   'remove-x-frame': true,
   'allow-credentials': true,
   'allow-headers-value': '*',
@@ -72,7 +74,10 @@ cors.onHeadersReceived = d => {
   if (prefs.methods.length > 3) { // GET, POST, HEAD are mandatory
     const o = responseHeaders.find(({name}) => name.toLowerCase() === 'access-control-allow-methods');
     if (o) {
-      o.value = [...new Set([...prefs.methods, ...o.value.split(/\s*,\s*/)])].join(', ');
+      // only append methods that are not in the supported list
+      o.value = [...new Set([...prefs.methods, ...o.value.split(/\s*,\s*/).filter(a => {
+        return DEFAULT_METHODS.indexOf(a) === -1;
+      })])].join(', ');
     }
     else {
       responseHeaders.push({
@@ -187,6 +192,11 @@ chrome.contextMenus.onClicked.addListener(({menuItemId, checked}) => {
       url: 'https://webbrowsertools.com/test-cors/'
     });
   }
+  else if (menuItemId === 'tutorial') {
+    chrome.tabs.create({
+      url: 'https://www.youtube.com/watch?v=8berLeTjKDM'
+    });
+  }
   else if (['overwrite-origin', 'remove-x-frame', 'allow-credentials', 'allow-headers', 'unblock-initiator'].indexOf(menuItemId) !== -1) {
     ps[menuItemId] = checked;
   }
@@ -208,7 +218,9 @@ chrome.contextMenus.onClicked.addListener(({menuItemId, checked}) => {
     'unblock-initiator': true
   }, prefs => {
     if (prefs['allow-credentials'] && prefs['unblock-initiator'] === false) {
-      alert(`Conflicting options:
+      alert(`CORS Unblock Extension
+
+Conflicting Options:
 The value of the 'Access-Control-Allow-Origin' header must not be '*' when the credentials mode is 'include'
 
 How to Fix:
@@ -226,7 +238,11 @@ chrome.storage.local.get(prefs, ps => {
     id: 'test-cors',
     contexts: ['browser_action']
   });
-
+  chrome.contextMenus.create({
+    title: 'Usage Instruction',
+    id: 'tutorial',
+    contexts: ['browser_action']
+  });
   chrome.contextMenus.create({
     title: 'Enable Access-Control-Allow-Origin',
     type: 'checkbox',
