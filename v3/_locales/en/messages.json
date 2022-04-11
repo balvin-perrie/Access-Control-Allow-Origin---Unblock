@@ -1,0 +1,5 @@
+{
+  "description": {
+    "message": "No more CORS error by appending 'Access-Control-Allow-Origin: *' header to local and remote web requests when enabled"
+  }
+}

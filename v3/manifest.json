@@ -1,0 +1,56 @@
+{
+  "manifest_version": 2,
+  "version": "0.3.0",
+  "name": "CORS Unblock",
+  "description": "__MSG_description__",
+  "default_locale": "en",
+  "permissions": [
+    "storage",
+    "<all_urls>",
+    "webRequest",
+    "webRequestBlocking",
+    "declarativeNetRequest",
+    "contextMenus"
+  ],
+  "declarative_net_request" : {
+    "rule_resources" : [{
+      "id": "x-frame",
+      "enabled": false,
+      "path": "rulesets/x-frame.json"
+    }, {
+      "id": "overwrite-origin",
+      "enabled": false,
+      "path": "rulesets/overwrite-origin.json"
+    }, {
+      "id": "allow-credentials",
+      "enabled": false,
+      "path": "rulesets/allow-credentials.json"
+    }, {
+      "id": "allow-headers",
+      "enabled": false,
+      "path": "rulesets/allow-headers.json"
+    }, {
+      "id": "referer",
+      "enabled": false,
+      "path": "rulesets/referer.json"
+    }]
+  },
+  "icons": {
+    "16": "data/icons/16.png",
+    "32": "data/icons/32.png",
+    "48": "data/icons/48.png",
+    "64": "data/icons/64.png",
+    "128": "data/icons/128.png",
+    "256": "data/icons/256.png",
+    "512": "data/icons/512.png"
+  },
+  "homepage_url": "https://add0n.com/access-control.html",
+  "browser_action":{},
+  "background": {
+    "scripts": [
+      "worker.js",
+      "context.js",
+      "v2.js"
+    ]
+  }
+}

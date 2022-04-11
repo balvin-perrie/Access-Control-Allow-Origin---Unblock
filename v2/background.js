@@ -118,10 +118,7 @@ cors.onHeadersReceived = d => {
   }
   if (prefs['allow-headers'] === true) {
     const o = responseHeaders.find(({name}) => name.toLowerCase() === 'access-control-expose-headers');
-    if (o) {
-      o.value = prefs['expose-headers-value'];
-    }
-    else {
+    if (!o) {
       responseHeaders.push({
         'name': 'Access-Control-Expose-Headers',
         'value': prefs['expose-headers-value']
