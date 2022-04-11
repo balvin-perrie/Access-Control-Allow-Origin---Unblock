@@ -9,7 +9,6 @@
     }]
   },
   "condition": {
-    "resourceTypes": ["sub_frame"],
-    "domainType": "thirdParty"
+    "resourceTypes": ["sub_frame"]
   }
 }]

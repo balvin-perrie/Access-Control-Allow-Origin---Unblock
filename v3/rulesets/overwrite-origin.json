@@ -9,7 +9,5 @@
       "value": "*"
     }]
   },
-  "condition": {
-    "domainType": "thirdParty"
-  }
+  "condition": {}
 }]
