@@ -17,9 +17,12 @@ v2.headersReceived = d => {
 v2.headersReceived.methods = [];
 
 v2.beforeSendHeaders = d => {
+  const {requestHeaders} = d;
   for (const c of v2.beforeSendHeaders.methods) {
     c(d);
   }
+
+  return {requestHeaders};
 };
 v2.beforeSendHeaders.methods = [];
 
@@ -31,9 +34,14 @@ v2.install = prefs => {
   }, ['blocking', 'responseHeaders', 'extraHeaders']);
 
   chrome.webRequest.onBeforeSendHeaders.removeListener(v2.beforeSendHeaders);
+
+  const m = ['requestHeaders'];
+  if (v2.prefs['fix-origin']) {
+    m.push('blocking', 'extraHeaders');
+  }
   chrome.webRequest.onBeforeSendHeaders.addListener(v2.beforeSendHeaders, {
     urls: ['<all_urls>']
-  }, ['requestHeaders']);
+  }, m);
 };
 v2.remove = () => {
   chrome.webRequest.onHeadersReceived.removeListener(v2.headersReceived);
@@ -70,39 +78,56 @@ v2.remove = () => {
   chrome.tabs.onRemoved.addListener(tabId => delete redirects[tabId]);
 
   v2.headersReceived.methods.push(d => {
-    if (d.type === 'main_frame') {
-      return;
-    }
+    if (v2.prefs['overwrite-origin'] && d.type !== 'main_frame') {
+      const {initiator, originUrl, responseHeaders} = d;
+      let origin = '*';
 
-    const {initiator, originUrl, responseHeaders} = d;
-    let origin = '*';
-
-    if (v2.prefs['unblock-initiator'] || v2.prefs['allow-credentials']) {
-      if (!redirects[d.tabId] || !redirects[d.tabId][d.requestId]) {
-        try {
-          const o = new URL(initiator || originUrl);
-          origin = o.origin;
+      if (v2.prefs['unblock-initiator'] || v2.prefs['allow-credentials']) {
+        if (!redirects[d.tabId] || !redirects[d.tabId][d.requestId]) {
+          try {
+            const o = new URL(initiator || originUrl);
+            origin = o.origin;
+          }
+          catch (e) {}
         }
-        catch (e) {}
+      }
+      if (d.statusCode === 301 || d.statusCode === 302) {
+        redirects[d.tabId] = redirects[d.tabId] || {};
+        redirects[d.tabId][d.requestId] = true;
+      }
+
+      const r = responseHeaders.find(({name}) => name.toLowerCase() === 'access-control-allow-origin');
+
+      if (r) {
+        if (r.value !== '*') {
+          r.value = origin;
+        }
+      }
+      else {
+        responseHeaders.push({
+          'name': 'Access-Control-Allow-Origin',
+          'value': origin
+        });
       }
     }
-    if (d.statusCode === 301 || d.statusCode === 302) {
-      redirects[d.tabId] = redirects[d.tabId] || {};
-      redirects[d.tabId][d.requestId] = true;
-    }
+  });
+}
 
-    const r = responseHeaders.find(({name}) => name.toLowerCase() === 'access-control-allow-origin');
-
-    if (r) {
-      if (r.value !== '*') {
-        r.value = origin;
+// Referrer and Origin
+{
+  v2.beforeSendHeaders.methods.push(d => {
+    if (v2.prefs['fix-origin']) {
+      try {
+        const o = new URL(d.url);
+        d.requestHeaders.push({
+          name: 'referer',
+          value: d.url
+        }, {
+          name: 'origin',
+          value: o.origin
+        });
       }
-    }
-    else {
-      responseHeaders.push({
-        'name': 'Access-Control-Allow-Origin',
-        'value': origin
-      });
+      catch (e) {}
     }
   });
 }

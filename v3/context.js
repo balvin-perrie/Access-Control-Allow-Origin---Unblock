@@ -5,6 +5,7 @@
     'allow-credentials': true,
     'allow-headers': false,
     'remove-referer': false,
+    'fix-origin': false,
     'remove-x-frame': true,
     'unblock-initiator': true,
     'fake-supported-methods': true,
@@ -55,12 +56,26 @@
       parentId: 'extra'
     });
     chrome.contextMenus.create({
-      title: 'Remove "referer" header',
+      id: 'referer',
+      title: 'Add/Remove "referer" and "origin" Headers',
+      contexts: ['browser_action'],
+      parentId: 'extra'
+    });
+    chrome.contextMenus.create({
+      title: 'Add same-origin "referer" and "origin" Headers',
+      type: 'checkbox',
+      id: 'fix-origin',
+      contexts: ['browser_action'],
+      checked: prefs['fix-origin'],
+      parentId: 'referer'
+    });
+    chrome.contextMenus.create({
+      title: 'Remove "referer" and "origin" Headers',
       type: 'checkbox',
       id: 'remove-referer',
       contexts: ['browser_action'],
       checked: prefs['remove-referer'],
-      parentId: 'extra'
+      parentId: 'referer'
     });
     chrome.contextMenus.create({
       title: `Only Unblock Request's Initiator`,
@@ -110,8 +125,11 @@ chrome.contextMenus.onClicked.addListener(({menuItemId, checked}) => {
     });
   }
   else if (
-    ['overwrite-origin', 'remove-x-frame', 'remove-referer', 'allow-credentials', 'allow-headers',
-      'unblock-initiator', 'fake-supported-methods'].includes(menuItemId)
+    [
+      'fix-origin', 'remove-referer',
+      'overwrite-origin', 'remove-x-frame', 'allow-credentials', 'allow-headers',
+      'unblock-initiator', 'fake-supported-methods'
+    ].includes(menuItemId)
   ) {
     chrome.storage.local.set({
       [menuItemId]: checked

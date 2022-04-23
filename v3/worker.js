@@ -25,11 +25,17 @@ core['overwrite-origin'] = () => chrome.storage.local.get({
   'fake-supported-methods': true,
   'methods': self.DEFAULT_METHODS,
   'unblock-initiator': true, // used in v2.install
-  'allow-credentials': true // used in v2.install
+  'allow-credentials': true, // used in v2.install
+  'fix-origin': false // used in v2.install
 }, prefs => {
-  if (prefs.enabled && prefs['overwrite-origin']) {
+  if (prefs.enabled && (prefs['overwrite-origin'] || prefs['fix-origin'])) {
     v2.install(prefs);
+  }
+  else {
+    v2.remove();
+  }
 
+  if (prefs.enabled && prefs['overwrite-origin']) {
     const rules = {
       removeRuleIds: [1, 2],
       addRules: [{
@@ -67,8 +73,6 @@ core['overwrite-origin'] = () => chrome.storage.local.get({
     chrome.declarativeNetRequest.updateDynamicRules(rules);
   }
   else {
-    v2.remove();
-
     chrome.declarativeNetRequest.updateDynamicRules({
       removeRuleIds: [1, 2]
     });
@@ -114,7 +118,9 @@ chrome.storage.onChanged.addListener(prefs => {
   }
   if (
     prefs.enabled || prefs['overwrite-origin'] || prefs.methods ||
-    prefs['allow-credentials'] || prefs['unblock-initiator'] || prefs['fake-supported-methods']
+    prefs['allow-credentials'] || prefs['unblock-initiator'] ||
+    prefs['fix-origin'] ||
+    prefs['fake-supported-methods']
   ) {
     core['overwrite-origin']();
   }
