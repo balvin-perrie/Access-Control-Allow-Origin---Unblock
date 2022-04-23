@@ -54,10 +54,6 @@ core['overwrite-origin'] = () => chrome.storage.local.get({
           'type': 'modifyHeaders',
           'responseHeaders': [{
             'operation': 'set',
-            'header': 'Access-Control-Allow-Headers',
-            'value': '*'
-          }, {
-            'operation': 'set',
             'header': 'Allow',
             'value': prefs.methods.join(', ')
           }]
