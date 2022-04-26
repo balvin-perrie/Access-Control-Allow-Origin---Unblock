@@ -4,6 +4,7 @@
     'overwrite-origin': true,
     'allow-credentials': true,
     'allow-headers': false,
+    'remove-csp': false,
     'remove-referer': false,
     'fix-origin': false,
     'remove-x-frame': true,
@@ -53,6 +54,14 @@
       id: 'remove-x-frame',
       contexts: ['browser_action'],
       checked: prefs['remove-x-frame'],
+      parentId: 'extra'
+    });
+    chrome.contextMenus.create({
+      title: 'Remove "Content-Security-Policy" Headers',
+      type: 'checkbox',
+      id: 'remove-csp',
+      contexts: ['browser_action'],
+      checked: prefs['remove-csp'],
       parentId: 'extra'
     });
     chrome.contextMenus.create({
@@ -126,11 +135,13 @@ chrome.contextMenus.onClicked.addListener(({menuItemId, checked}) => {
   }
   else if (
     [
+      'remove-csp',
       'fix-origin', 'remove-referer',
       'overwrite-origin', 'remove-x-frame', 'allow-credentials', 'allow-headers',
       'unblock-initiator', 'fake-supported-methods'
     ].includes(menuItemId)
   ) {
+    console.log(menuItemId, checked);
     chrome.storage.local.set({
       [menuItemId]: checked
     });

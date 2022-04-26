@@ -33,6 +33,10 @@
       "id": "referer",
       "enabled": false,
       "path": "rulesets/referer.json"
+    }, {
+      "id": "csp",
+      "enabled": false,
+      "path": "rulesets/csp.json"
     }]
   },
   "icons": {

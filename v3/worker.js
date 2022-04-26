@@ -79,7 +79,6 @@ core['overwrite-origin'] = () => chrome.storage.local.get({
   }
 });
 
-
 const toggle = (name, rule, value) => chrome.storage.local.get({
   'enabled': false,
   [name]: value
@@ -91,6 +90,7 @@ const toggle = (name, rule, value) => chrome.storage.local.get({
   });
 });
 
+core['csp'] = () => toggle('remove-csp', 'csp', false);
 core['x-frame'] = () => toggle('remove-x-frame', 'x-frame', true);
 core['allow-credentials'] = () => toggle('allow-credentials', 'allow-credentials', true);
 core['allow-headers'] = () => toggle('allow-headers', 'allow-headers', false);
@@ -105,6 +105,7 @@ core['referer'] = () => toggle('remove-referer', 'referer', false);
     core['allow-credentials']();
     core['allow-headers']();
     core['referer']();
+    core['csp']();
   };
   chrome.runtime.onStartup.addListener(once);
   chrome.runtime.onInstalled.addListener(once);
@@ -132,6 +133,9 @@ chrome.storage.onChanged.addListener(prefs => {
   }
   if (prefs.enabled || prefs['remove-referer']) {
     core['referer']();
+  }
+  if (prefs.enabled || prefs['remove-csp']) {
+    core['csp']();
   }
 
   // validate
