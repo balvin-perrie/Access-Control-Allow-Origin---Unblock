@@ -8,23 +8,31 @@ const v2 = {};
 
 v2.headersReceived = d => {
   const {responseHeaders} = d;
-  for (const c of v2.headersReceived.methods) {
-    c(d);
+  for (const o of v2.headersReceived.methods) {
+    o.method(d);
+    if (o.once) {
+      v2.headersReceived.methods.delete(o);
+    }
   }
 
-  return {responseHeaders};
+  return {
+    responseHeaders
+  };
 };
-v2.headersReceived.methods = [];
+v2.headersReceived.methods = new Set();
 
 v2.beforeSendHeaders = d => {
   const {requestHeaders} = d;
-  for (const c of v2.beforeSendHeaders.methods) {
-    c(d);
+  for (const o of v2.beforeSendHeaders.methods) {
+    o.method(d);
+    if (o.once) {
+      v2.beforeSendHeaders.methods.delete(o);
+    }
   }
 
   return {requestHeaders};
 };
-v2.beforeSendHeaders.methods = [];
+v2.beforeSendHeaders.methods = new Set();
 
 v2.install = prefs => {
   v2.prefs = prefs;
@@ -49,65 +57,68 @@ v2.remove = () => {
 };
 
 // Access-Control-Allow-Headers for OPTIONS
-{
-  const cache = {};
-
-  v2.beforeSendHeaders.methods.push(d => {
+v2.beforeSendHeaders.methods.add({
+  method: d => {
     if (d.method === 'OPTIONS') {
       const r = d.requestHeaders.find(({name}) => name.toLowerCase() === 'access-control-request-headers');
 
       if (r) {
-        cache[d.requestId] = r.value;
+        const {requestId} = d;
+
+        v2.headersReceived.methods.add({
+          method: d => {
+            if (d.method === 'OPTIONS' && d.requestId === requestId) {
+              d.responseHeaders.push({
+                'name': 'Access-Control-Allow-Headers',
+                'value': r.value
+              });
+            }
+          },
+          once: true
+        });
       }
     }
-  });
-  v2.headersReceived.methods.push(d => {
-    if (d.method === 'OPTIONS' && cache[d.requestId]) {
-      d.responseHeaders.push({
-        'name': 'Access-Control-Allow-Headers',
-        'value': cache[d.requestId]
-      });
-      delete cache[d.requestId];
-    }
-  });
-}
+  }
+});
 
 // Access-Control-Allow-Origin
 {
   const redirects = {};
   chrome.tabs.onRemoved.addListener(tabId => delete redirects[tabId]);
 
-  v2.headersReceived.methods.push(d => {
-    if (v2.prefs['overwrite-origin'] && d.type !== 'main_frame') {
-      const {initiator, originUrl, responseHeaders} = d;
-      let origin = '*';
+  v2.headersReceived.methods.add({
+    method: d => {
+      if (v2.prefs['overwrite-origin'] && d.type !== 'main_frame') {
+        const {initiator, originUrl, responseHeaders} = d;
+        let origin = '*';
 
-      if (v2.prefs['unblock-initiator'] || v2.prefs['allow-credentials']) {
-        if (!redirects[d.tabId] || !redirects[d.tabId][d.requestId]) {
-          try {
-            const o = new URL(initiator || originUrl);
-            origin = o.origin;
+        if (v2.prefs['unblock-initiator'] || v2.prefs['allow-credentials']) {
+          if (!redirects[d.tabId] || !redirects[d.tabId][d.requestId]) {
+            try {
+              const o = new URL(initiator || originUrl);
+              origin = o.origin;
+            }
+            catch (e) {}
           }
-          catch (e) {}
         }
-      }
-      if (d.statusCode === 301 || d.statusCode === 302) {
-        redirects[d.tabId] = redirects[d.tabId] || {};
-        redirects[d.tabId][d.requestId] = true;
-      }
-
-      const r = responseHeaders.find(({name}) => name.toLowerCase() === 'access-control-allow-origin');
-
-      if (r) {
-        if (r.value !== '*') {
-          r.value = origin;
+        if (d.statusCode === 301 || d.statusCode === 302) {
+          redirects[d.tabId] = redirects[d.tabId] || {};
+          redirects[d.tabId][d.requestId] = true;
         }
-      }
-      else {
-        responseHeaders.push({
-          'name': 'Access-Control-Allow-Origin',
-          'value': origin
-        });
+
+        const r = responseHeaders.find(({name}) => name.toLowerCase() === 'access-control-allow-origin');
+
+        if (r) {
+          if (r.value !== '*') {
+            r.value = origin;
+          }
+        }
+        else {
+          responseHeaders.push({
+            'name': 'Access-Control-Allow-Origin',
+            'value': origin
+          });
+        }
       }
     }
   });
@@ -115,19 +126,21 @@ v2.remove = () => {
 
 // Referrer and Origin
 {
-  v2.beforeSendHeaders.methods.push(d => {
-    if (v2.prefs['fix-origin']) {
-      try {
-        const o = new URL(d.url);
-        d.requestHeaders.push({
-          name: 'referer',
-          value: d.url
-        }, {
-          name: 'origin',
-          value: o.origin
-        });
+  v2.beforeSendHeaders.methods.add({
+    method: d => {
+      if (v2.prefs['fix-origin']) {
+        try {
+          const o = new URL(d.url);
+          d.requestHeaders.push({
+            name: 'referer',
+            value: d.url
+          }, {
+            name: 'origin',
+            value: o.origin
+          });
+        }
+        catch (e) {}
       }
-      catch (e) {}
     }
   });
 }

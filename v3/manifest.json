@@ -10,7 +10,8 @@
     "webRequest",
     "webRequestBlocking",
     "declarativeNetRequest",
-    "contextMenus"
+    "contextMenus",
+    "debugger"
   ],
   "declarative_net_request" : {
     "rule_resources" : [{

@@ -118,12 +118,68 @@
         parentId: 'menu'
       });
     }
+    chrome.contextMenus.create({
+      title: 'Overwrite 4xx Status Code For This Tab',
+      contexts: ['browser_action'],
+      parentId: 'extra',
+      id: 'status-code'
+    });
+    chrome.contextMenus.create({
+      title: 'Enable',
+      contexts: ['browser_action'],
+      parentId: 'status-code',
+      id: 'status-code-enabled'
+    });
+    chrome.contextMenus.create({
+      title: 'Disable',
+      contexts: ['browser_action'],
+      parentId: 'status-code',
+      id: 'status-code-disabled'
+    });
   });
   chrome.runtime.onStartup.addListener(once);
   chrome.runtime.onInstalled.addListener(once);
 }
-chrome.contextMenus.onClicked.addListener(({menuItemId, checked}) => {
-  if (menuItemId === 'test-cors') {
+
+const debug = (source, method, params) => {
+  if (method === 'Fetch.requestPaused') {
+    const opts = {
+      requestId: params.requestId
+    };
+    const status = params.responseStatusCode;
+    if (status && status >= 400 && status < 500) {
+      opts.responseCode = 200;
+      opts.responseHeaders = params.responseHeaders || [];
+    }
+
+    chrome.debugger.sendCommand({
+      tabId: source.tabId
+    }, 'Fetch.continueResponse', opts);
+  }
+};
+
+chrome.contextMenus.onClicked.addListener(({menuItemId, checked}, tab) => {
+  if (menuItemId === 'status-code-enabled') {
+    chrome.debugger.onEvent.removeListener(debug);
+    chrome.debugger.onEvent.addListener(debug);
+
+    const target = {
+      tabId: tab.id
+    };
+
+    chrome.debugger.attach(target, '1.2', () => chrome.debugger.sendCommand(target, 'Fetch.enable', {
+      patterns: [{
+        requestStage: 'Response'
+      }]
+    }));
+  }
+  else if (menuItemId === 'status-code-disabled') {
+    chrome.debugger.onEvent.removeListener(debug);
+    chrome.debugger.detach({
+      tabId: tab.id
+    });
+  }
+  else if (menuItemId === 'test-cors') {
     chrome.tabs.create({
       url: 'https://webbrowsertools.com/test-cors/'
     });
