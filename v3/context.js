@@ -197,7 +197,6 @@ chrome.contextMenus.onClicked.addListener(({menuItemId, checked}, tab) => {
       'unblock-initiator', 'fake-supported-methods'
     ].includes(menuItemId)
   ) {
-    console.log(menuItemId, checked);
     chrome.storage.local.set({
       [menuItemId]: checked
     });
