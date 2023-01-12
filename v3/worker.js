@@ -91,6 +91,7 @@ const toggle = (name, rule, value) => chrome.storage.local.get({
 });
 
 core['csp'] = () => toggle('remove-csp', 'csp', false);
+core['allow-shared-array-buffer'] = () => toggle('allow-shared-array-buffer', 'allow-shared-array-buffer', false);
 core['x-frame'] = () => toggle('remove-x-frame', 'x-frame', true);
 core['allow-credentials'] = () => toggle('allow-credentials', 'allow-credentials', true);
 core['allow-headers'] = () => toggle('allow-headers', 'allow-headers', false);
@@ -106,6 +107,7 @@ core['referer'] = () => toggle('remove-referer', 'referer', false);
     core['allow-headers']();
     core['referer']();
     core['csp']();
+    core['allow-shared-array-buffer']();
   };
   chrome.runtime.onStartup.addListener(once);
   chrome.runtime.onInstalled.addListener(once);
@@ -136,6 +138,9 @@ chrome.storage.onChanged.addListener(prefs => {
   }
   if (prefs.enabled || prefs['remove-csp']) {
     core['csp']();
+  }
+  if (prefs.enabled || prefs['allow-shared-array-buffer']) {
+    core['allow-shared-array-buffer']();
   }
 
   // validate

@@ -5,6 +5,7 @@
     'allow-credentials': true,
     'allow-headers': false,
     'remove-csp': false,
+    'allow-shared-array-buffer': false,
     'remove-referer': false,
     'fix-origin': false,
     'remove-x-frame': true,
@@ -62,6 +63,14 @@
       id: 'remove-csp',
       contexts: ['browser_action'],
       checked: prefs['remove-csp'],
+      parentId: 'extra'
+    });
+    chrome.contextMenus.create({
+      title: 'Append Header to Allow Shared Array Buffer',
+      type: 'checkbox',
+      id: 'allow-shared-array-buffer',
+      contexts: ['browser_action'],
+      checked: prefs['allow-shared-array-buffer'],
       parentId: 'extra'
     });
     chrome.contextMenus.create({
@@ -192,6 +201,7 @@ chrome.contextMenus.onClicked.addListener(({menuItemId, checked}, tab) => {
   else if (
     [
       'remove-csp',
+      'allow-shared-array-buffer',
       'fix-origin', 'remove-referer',
       'overwrite-origin', 'remove-x-frame', 'allow-credentials', 'allow-headers',
       'unblock-initiator', 'fake-supported-methods'

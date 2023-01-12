@@ -38,6 +38,10 @@
       "id": "csp",
       "enabled": false,
       "path": "rulesets/csp.json"
+    }, {
+      "id": "allow-shared-array-buffer",
+      "enabled": false,
+      "path": "rulesets/allow-shared-array-buffer.json"
     }]
   },
   "icons": {

@@ -1,0 +1,19 @@
+[{
+  "id": 1,
+  "priority": 1,
+  "action": {
+    "type": "modifyHeaders",
+    "responseHeaders": [{
+      "operation": "set",
+      "header": "Cross-Origin-Opener-Policy",
+      "value": "same-origin"
+    }, {
+      "operation": "set",
+      "header": "Cross-Origin-Embedder-Policy",
+      "value": "require-corp"
+    }]
+  },
+  "condition": {
+    "resourceTypes": ["main_frame", "script"]
+  }
+}]
