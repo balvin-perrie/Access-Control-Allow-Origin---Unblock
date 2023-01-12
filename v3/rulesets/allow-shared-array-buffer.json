@@ -11,9 +11,25 @@
       "operation": "set",
       "header": "Cross-Origin-Embedder-Policy",
       "value": "require-corp"
+    }, {
+      "operation": "set",
+      "header": "Cross-Origin-Resource-Policy",
+      "value": "cross-origin"
     }]
   },
   "condition": {
-    "resourceTypes": ["main_frame", "script"]
+    "resourceTypes": ["main_frame", "script", "image"]
   }
+}, {
+  "id": 2,
+  "priority": 1,
+  "action": {
+    "type": "modifyHeaders",
+    "responseHeaders": [{
+      "operation": "set",
+      "header": "Cross-Origin-Resource-Policy",
+      "value": "cross-origin"
+    }]
+  },
+  "condition": {}
 }]
