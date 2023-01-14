@@ -1,4 +1,4 @@
-// context menu
+/* global notify */
 {
   const once = chrome.storage.local.get({
     'overwrite-origin': true,
@@ -11,7 +11,8 @@
     'remove-x-frame': true,
     'unblock-initiator': true,
     'fake-supported-methods': true,
-    'methods': self.DEFAULT_METHODS
+    'methods': self.DEFAULT_METHODS,
+    'status-code-methods': self.DEFAULT_STATUS_METHODS
   }, prefs => {
     chrome.contextMenus.create({
       title: 'Test CORS',
@@ -66,7 +67,7 @@
       parentId: 'extra'
     });
     chrome.contextMenus.create({
-      title: 'Append Header to Allow Shared Array Buffer',
+      title: 'Append Headers to Allow Shared Array Buffer',
       type: 'checkbox',
       id: 'allow-shared-array-buffer',
       contexts: ['browser_action'],
@@ -134,31 +135,54 @@
       id: 'status-code'
     });
     chrome.contextMenus.create({
-      title: 'Enable',
+      title: 'Enable on This Tab',
       contexts: ['browser_action'],
       parentId: 'status-code',
-      id: 'status-code-enabled'
+      id: 'status-code-enable'
     });
     chrome.contextMenus.create({
-      title: 'Disable',
+      title: 'Disable on This Tab',
       contexts: ['browser_action'],
       parentId: 'status-code',
-      id: 'status-code-disabled'
+      id: 'status-code-disable'
     });
+    chrome.contextMenus.create({
+      title: 'Overwrite 4xx Status Code Methods',
+      contexts: ['browser_action'],
+      parentId: 'extra',
+      id: 'status-code-methods'
+    });
+    for (const method of self.DEFAULT_STATUS_METHODS) {
+      chrome.contextMenus.create({
+        title: method,
+        type: 'checkbox',
+        id: 'status-code-methods-' + method,
+        contexts: ['browser_action'],
+        checked: prefs['status-code-methods'].includes(method),
+        parentId: 'status-code-methods'
+      });
+    }
   });
   chrome.runtime.onStartup.addListener(once);
   chrome.runtime.onInstalled.addListener(once);
 }
 
-const debug = (source, method, params) => {
+const debug = async (source, method, params) => {
   if (method === 'Fetch.requestPaused') {
     const opts = {
       requestId: params.requestId
     };
     const status = params.responseStatusCode;
     if (status && status >= 400 && status < 500) {
-      opts.responseCode = 200;
-      opts.responseHeaders = params.responseHeaders || [];
+      const methods = await new Promise(resolve => chrome.storage.local.get({
+        'status-code-methods': self.DEFAULT_STATUS_METHODS
+      }, prefs => resolve(prefs['status-code-methods'])));
+
+      const method = params.request?.method;
+      if (method && methods.includes(method)) {
+        opts.responseCode = 200;
+        opts.responseHeaders = params.responseHeaders || [];
+      }
     }
 
     chrome.debugger.sendCommand({
@@ -168,24 +192,56 @@ const debug = (source, method, params) => {
 };
 
 chrome.contextMenus.onClicked.addListener(({menuItemId, checked}, tab) => {
-  if (menuItemId === 'status-code-enabled') {
+  if (menuItemId === 'status-code-enable' || menuItemId === 'status-code-disable') {
     chrome.debugger.onEvent.removeListener(debug);
     chrome.debugger.onEvent.addListener(debug);
 
-    const target = {
-      tabId: tab.id
-    };
+    if (menuItemId === 'status-code-enable') {
+      chrome.storage.local.get({
+        enabled: false
+      }, prefs => {
+        if (prefs.enabled) {
+          const target = {
+            tabId: tab.id
+          };
 
-    chrome.debugger.attach(target, '1.2', () => chrome.debugger.sendCommand(target, 'Fetch.enable', {
-      patterns: [{
-        requestStage: 'Response'
-      }]
-    }));
+          chrome.debugger.attach(target, '1.2', () => {
+            const {lastError} = chrome.runtime;
+            if (lastError) {
+              console.warn(lastError);
+              notify(lastError.message);
+            }
+            else {
+              chrome.debugger.sendCommand(target, 'Fetch.enable', {
+                patterns: [{
+                  requestStage: 'Response'
+                }]
+              });
+            }
+          });
+        }
+        else {
+          notify('To overwrite status codes, enable the extension first');
+        }
+      });
+    }
+    else {
+      chrome.debugger.detach({
+        tabId: tab.id
+      }, () => chrome.runtime.lastError);
+    }
   }
-  else if (menuItemId === 'status-code-disabled') {
-    chrome.debugger.onEvent.removeListener(debug);
-    chrome.debugger.detach({
-      tabId: tab.id
+  else if (menuItemId.startsWith('status-code-methods-')) {
+    chrome.storage.local.get({
+      'status-code-methods': self.DEFAULT_STATUS_METHODS
+    }, prefs => {
+      const methods = new Set(prefs['status-code-methods']);
+      const method = menuItemId.replace('status-code-methods-', '');
+
+      methods[checked ? 'add' : 'delete'](method);
+      chrome.storage.local.set({
+        'status-code-methods': [...methods]
+      });
     });
   }
   else if (menuItemId === 'test-cors') {
@@ -225,6 +281,18 @@ chrome.contextMenus.onClicked.addListener(({menuItemId, checked}, tab) => {
         }
       }
       chrome.storage.local.set(prefs);
+    });
+  }
+});
+
+chrome.storage.onChanged.addListener(ps => {
+  if (ps.enabled) {
+    chrome.debugger.getTargets(os => {
+      for (const o of os.filter(o => o.attached && o.type === 'page' && o.tabId)) {
+        chrome.debugger.detach({
+          tabId: o.tabId
+        }, () => chrome.runtime.lastError);
+      }
     });
   }
 });
