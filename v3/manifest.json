@@ -1,6 +1,6 @@
 {
   "manifest_version": 2,
-  "version": "0.3.6",
+  "version": "0.3.8",
   "name": "CORS Unblock",
   "description": "__MSG_description__",
   "default_locale": "en",
@@ -45,15 +45,15 @@
     }]
   },
   "icons": {
-    "16": "data/icons/16.png",
-    "32": "data/icons/32.png",
-    "48": "data/icons/48.png",
-    "64": "data/icons/64.png",
-    "128": "data/icons/128.png",
-    "256": "data/icons/256.png",
-    "512": "data/icons/512.png"
+    "16": "/data/icons/16.png",
+    "32": "/data/icons/32.png",
+    "48": "/data/icons/48.png",
+    "64": "/data/icons/64.png",
+    "128": "/data/icons/128.png",
+    "256": "/data/icons/256.png",
+    "512": "/data/icons/512.png"
   },
-  "homepage_url": "https://add0n.com/access-control.html",
+  "homepage_url": "https://webextension.org/listing/access-control.html",
   "browser_action":{},
   "background": {
     "scripts": [

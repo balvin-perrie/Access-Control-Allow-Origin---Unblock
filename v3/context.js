@@ -1,6 +1,6 @@
 /* global notify */
 {
-  const once = chrome.storage.local.get({
+  const once = () => chrome.storage.local.get({
     'overwrite-origin': true,
     'allow-credentials': true,
     'allow-headers': false,
@@ -18,38 +18,38 @@
       title: 'Test CORS',
       id: 'test-cors',
       contexts: ['browser_action']
-    });
+    }, () => chrome.runtime.lastError);
     chrome.contextMenus.create({
       title: 'Usage Instruction',
       id: 'tutorial',
       contexts: ['browser_action']
-    });
+    }, () => chrome.runtime.lastError);
     chrome.contextMenus.create({
       title: 'Enable Access-Control-Allow-Origin',
       type: 'checkbox',
       id: 'overwrite-origin',
       contexts: ['browser_action'],
       checked: prefs['overwrite-origin']
-    });
+    }, () => chrome.runtime.lastError);
     chrome.contextMenus.create({
       title: 'Enable Access-Control-Allow-Credentials',
       type: 'checkbox',
       id: 'allow-credentials',
       contexts: ['browser_action'],
       checked: prefs['allow-credentials']
-    });
+    }, () => chrome.runtime.lastError);
     chrome.contextMenus.create({
       title: 'Enable Access-Control-[Allow/Expose]-Headers',
       type: 'checkbox',
       id: 'allow-headers',
       contexts: ['browser_action'],
       checked: prefs['allow-headers']
-    });
+    }, () => chrome.runtime.lastError);
     chrome.contextMenus.create({
       id: 'extra',
       title: 'Extra Options',
       contexts: ['browser_action']
-    });
+    }, () => chrome.runtime.lastError);
     chrome.contextMenus.create({
       title: 'Remove X-Frame-Options',
       type: 'checkbox',
@@ -57,7 +57,7 @@
       contexts: ['browser_action'],
       checked: prefs['remove-x-frame'],
       parentId: 'extra'
-    });
+    }, () => chrome.runtime.lastError);
     chrome.contextMenus.create({
       title: 'Remove "Content-Security-Policy" Headers',
       type: 'checkbox',
@@ -65,7 +65,7 @@
       contexts: ['browser_action'],
       checked: prefs['remove-csp'],
       parentId: 'extra'
-    });
+    }, () => chrome.runtime.lastError);
     chrome.contextMenus.create({
       title: 'Append Headers to Allow Shared Array Buffer',
       type: 'checkbox',
@@ -73,13 +73,13 @@
       contexts: ['browser_action'],
       checked: prefs['allow-shared-array-buffer'],
       parentId: 'extra'
-    });
+    }, () => chrome.runtime.lastError);
     chrome.contextMenus.create({
       id: 'referer',
       title: 'Add/Remove "referer" and "origin" Headers',
       contexts: ['browser_action'],
       parentId: 'extra'
-    });
+    }, () => chrome.runtime.lastError);
     chrome.contextMenus.create({
       title: 'Add same-origin "referer" and "origin" Headers',
       type: 'checkbox',
@@ -87,7 +87,7 @@
       contexts: ['browser_action'],
       checked: prefs['fix-origin'],
       parentId: 'referer'
-    });
+    }, () => chrome.runtime.lastError);
     chrome.contextMenus.create({
       title: 'Remove "referer" and "origin" Headers',
       type: 'checkbox',
@@ -95,7 +95,7 @@
       contexts: ['browser_action'],
       checked: prefs['remove-referer'],
       parentId: 'referer'
-    });
+    }, () => chrome.runtime.lastError);
     chrome.contextMenus.create({
       title: `Only Unblock Request's Initiator`,
       type: 'checkbox',
@@ -103,7 +103,7 @@
       contexts: ['browser_action'],
       checked: prefs['unblock-initiator'],
       parentId: 'extra'
-    });
+    }, () => chrome.runtime.lastError);
     chrome.contextMenus.create({
       title: 'Pretend Enabled Methods are Supported by Server',
       type: 'checkbox',
@@ -111,47 +111,52 @@
       contexts: ['browser_action'],
       checked: prefs['fake-supported-methods'],
       parentId: 'extra'
-    });
+    }, () => chrome.runtime.lastError);
     chrome.contextMenus.create({
       title: 'Access-Control-Allow-Methods Methods:',
       contexts: ['browser_action'],
       parentId: 'extra',
       id: 'menu'
-    });
-    for (const method of ['PUT', 'DELETE', 'OPTIONS', 'PATCH', 'PROPFIND', 'PROPPATCH', 'MKCOL', 'COPY', 'MOVE', 'LOCK']) {
+    }, () => chrome.runtime.lastError);
+    for (const method of self.DEFAULT_METHODS) {
+      if (['GET', 'POST', 'HEAD'].includes(method)) {
+        continue;
+      }
       chrome.contextMenus.create({
         title: method,
         type: 'checkbox',
         id: method,
         contexts: ['browser_action'],
-        checked: prefs.methods.indexOf(method) !== -1,
+        checked: prefs.methods.includes(method),
         parentId: 'menu'
-      });
+      }, () => chrome.runtime.lastError);
     }
     chrome.contextMenus.create({
       title: 'Overwrite 4xx Status Code For This Tab',
       contexts: ['browser_action'],
       parentId: 'extra',
-      id: 'status-code'
-    });
+      id: 'status-code',
+      enabled: Boolean(chrome.debugger)
+    }, () => chrome.runtime.lastError);
     chrome.contextMenus.create({
       title: 'Enable on This Tab',
       contexts: ['browser_action'],
       parentId: 'status-code',
       id: 'status-code-enable'
-    });
+    }, () => chrome.runtime.lastError);
     chrome.contextMenus.create({
       title: 'Disable on This Tab',
       contexts: ['browser_action'],
       parentId: 'status-code',
       id: 'status-code-disable'
-    });
+    }, () => chrome.runtime.lastError);
     chrome.contextMenus.create({
       title: 'Overwrite 4xx Status Code Methods',
       contexts: ['browser_action'],
       parentId: 'extra',
-      id: 'status-code-methods'
-    });
+      id: 'status-code-methods',
+      enabled: Boolean(chrome.debugger)
+    }, () => chrome.runtime.lastError);
     for (const method of self.DEFAULT_STATUS_METHODS) {
       chrome.contextMenus.create({
         title: method,
@@ -160,7 +165,7 @@
         contexts: ['browser_action'],
         checked: prefs['status-code-methods'].includes(method),
         parentId: 'status-code-methods'
-      });
+      }, () => chrome.runtime.lastError);
     }
   });
   chrome.runtime.onStartup.addListener(once);
@@ -185,9 +190,11 @@ const debug = async (source, method, params) => {
       }
     }
 
-    chrome.debugger.sendCommand({
-      tabId: source.tabId
-    }, 'Fetch.continueResponse', opts);
+    if (chrome.debugger) {
+      chrome.debugger.sendCommand({
+        tabId: source.tabId
+      }, 'Fetch.continueResponse', opts);
+    }
   }
 };
 
@@ -285,14 +292,16 @@ chrome.contextMenus.onClicked.addListener(({menuItemId, checked}, tab) => {
   }
 });
 
-chrome.storage.onChanged.addListener(ps => {
-  if (ps.enabled) {
-    chrome.debugger.getTargets(os => {
-      for (const o of os.filter(o => o.attached && o.type === 'page' && o.tabId)) {
-        chrome.debugger.detach({
-          tabId: o.tabId
-        }, () => chrome.runtime.lastError);
-      }
-    });
-  }
-});
+if (chrome.debugger) {
+  chrome.storage.onChanged.addListener(ps => {
+    if (ps.enabled) {
+      chrome.debugger.getTargets(os => {
+        for (const o of os.filter(o => o.attached && o.type === 'page' && o.tabId)) {
+          chrome.debugger.detach({
+            tabId: o.tabId
+          }, () => chrome.runtime.lastError);
+        }
+      });
+    }
+  });
+}

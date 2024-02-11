@@ -1,5 +1,7 @@
 /* global v2 */
-self.DEFAULT_METHODS = ['GET', 'PUT', 'POST', 'DELETE', 'HEAD', 'OPTIONS', 'PATCH', 'PROPFIND', 'PROPPATCH', 'MKCOL', 'COPY', 'MOVE', 'LOCK'];
+self.DEFAULT_METHODS = [
+  'GET', 'PUT', 'POST', 'DELETE', 'HEAD', 'OPTIONS', 'PATCH', 'PROPFIND', 'PROPPATCH', 'MKCOL', 'COPY', 'MOVE', 'LOCK'
+];
 self.DEFAULT_STATUS_METHODS = ['GET', 'POST', 'PUT', 'OPTIONS', 'PATCH', 'PROPFIND', 'PROPPATCH'];
 
 const notify = e => alert(e.message || e);
@@ -10,9 +12,9 @@ core.badge = () => chrome.storage.local.get({
 }, prefs => {
   chrome.browserAction.setIcon({
     path: {
-      '16': 'data/icons' + (prefs.enabled ? '' : '/disabled') + '/16.png',
-      '32': 'data/icons' + (prefs.enabled ? '' : '/disabled') + '/32.png',
-      '48': 'data/icons' + (prefs.enabled ? '' : '/disabled') + '/48.png'
+      '16': '/data/icons' + (prefs.enabled ? '' : '/disabled') + '/16.png',
+      '32': '/data/icons' + (prefs.enabled ? '' : '/disabled') + '/32.png',
+      '48': '/data/icons' + (prefs.enabled ? '' : '/disabled') + '/48.png'
     }
   });
   chrome.browserAction.setTitle({

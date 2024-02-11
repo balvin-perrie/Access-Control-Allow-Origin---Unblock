@@ -36,10 +36,16 @@ v2.beforeSendHeaders.methods = new Set();
 
 v2.install = prefs => {
   v2.prefs = prefs;
+
+  const filters = ['blocking', 'responseHeaders'];
+  if (/Firefox/.test(navigator.userAgent) === false) {
+    filters.push('extraHeaders');
+  }
+
   chrome.webRequest.onHeadersReceived.removeListener(v2.headersReceived);
   chrome.webRequest.onHeadersReceived.addListener(v2.headersReceived, {
     urls: ['<all_urls>']
-  }, ['blocking', 'responseHeaders', 'extraHeaders']);
+  }, filters);
 
   chrome.webRequest.onBeforeSendHeaders.removeListener(v2.beforeSendHeaders);
 
