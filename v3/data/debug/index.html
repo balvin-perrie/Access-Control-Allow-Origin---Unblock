@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" type="text/css" href="index.css">
+  <link rel="icon" type="image/png" href="/data/icons/64.png">
+</head>
+<body>
+  <div id="tip" class="hidden">
+    <span>Use "Terminate and Close" button to peacefully stop CORS unblocking for this tab</span>
+    <input type="button" id="close-tip" value="×">
+  </div>
+  <div id="rules">
+    <form id="methods">
+      <p>
+        <label><input type="checkbox" name="GET" checked disabled>GET</label>
+        <label><input type="checkbox" name="PUT" checked>PUT</label>
+        <label><input type="checkbox" name="POST" checked>POST</label>
+        <label><input type="checkbox" name="DELETE" checked>DELETE</label>
+        <label><input type="checkbox" name="HEAD" checked>HEAD</label>
+        <label><input type="checkbox" name="OPTIONS" checked>OPTIONS</label>
+        <label><input type="checkbox" name="PATCH" checked>PATCH</label>
+        <label><input type="checkbox" name="PROPFIND">PROPFIND</label>
+        <label><input type="checkbox" name="PROPPATCH">PROPPATCH</label>
+        <label><input type="checkbox" name="MKCOL">MKCOL</label>
+        <label><input type="checkbox" name="COPY">COPY</label>
+        <label><input type="checkbox" name="MOVE">MOVE</label>
+        <label><input type="checkbox" name="LOCK">LOCK</label>
+      </p>
+    </form>
+    <table>
+      <tr>
+        <td>
+          <label>
+            <input type="checkbox" checked id="access-control-allow-origin-checkbox">
+            Access-Control-Allow-Origin
+          </label>
+        </td>
+        <td>
+          <label><input type="radio" name="access-control-allow-origin-radio" data-id="acao-1" value="*">*</label>
+          <label><input type="radio" name="access-control-allow-origin-radio" data-id="acao-2" checked value="[origin]"><span data-id="acao-3"></span></label>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <label>
+            <input type="checkbox" checked id="access-control-allow-methods-checkbox">
+            Access-Control-Allow-Methods
+          </label>
+        </td>
+        <td>
+          <label><input type="radio" name="access-control-allow-methods-radio" data-id="acam-1" value="*" checked>*</label>
+          <label><input type="radio" name="access-control-allow-methods-radio" data-id="acam-2" value="defined">Selected Methods</label>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2">
+        <label>
+          <input type="checkbox" checked id="access-control-allow-credentials-enabled">
+          Access-Control-Allow-Credentials
+        </label>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2">
+        <label>
+          <input type="checkbox" checked id="access-control-allow-headers-enabled">
+          Access-Control-Allow-Headers
+        </label>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2">
+        <label>
+          <input type="checkbox" checked id="access-control-expose-headers-enabled">
+          Access-Control-Expose-Headers
+        </label>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2">
+        <label>
+          <input type="checkbox" checked id="x-frame-options-enabled">
+          Remove X-Frame-Options
+        </label>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2">
+        <label>
+          <input type="checkbox" checked id="content-security-policy-enabled">
+          Remove Content-Security-Policy
+        </label>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2">
+        <label>
+          <input type="checkbox" checked id="shared-array-buffer-enabled">
+          Append Headers to allow Shared Array Buffer
+        </label>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2">
+        <label>
+          <input type="checkbox" checked id="fake-supported-methods">
+          Pretend Enabled Methods are Supported by Server
+        </label>
+        </td>
+      </tr>
+      <tr>
+        <th colspan="2">[Requires Debugger]</th>
+      </tr>
+      <tr>
+        <td colspan="2">
+        <label>
+          <input type="checkbox" id="access-control-request-headers-enabled">
+          Access-Control-Request-Headers
+        </label>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2">
+        <label>
+          <input type="checkbox" id="overwrite-4xx-checkbox">
+          Overwrite 4xx status codes with 200.
+        </label>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2">
+          <label>
+            <input type="checkbox" id="overwrite-501-checkbox">
+            Overwrite 501 (Not Implemented) status code with 200
+          </label>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2">
+          <label>
+            <input type="checkbox" id="fix-redirect-checkbox">
+            Fix "Access-Control-Allow-Origin" for redirected requests (status codes 301 and 302)
+          </label>
+        </td>
+      </tr>
+    </table>
+  </div>
+  <div id="tools">
+    <h3>Preferences:</h3>
+    <div>
+      <input type="button" value="Save (This Hostname)" id="save-hostname">
+      <input type="button" value="Save (All Hostnames)" id="save-all">
+    </div>
+    <div>
+      <input type="button" value="Load (All Hostnames)" id="load-all">
+      <input type="button" value="Load (This Hostname)" id="load-hostname">
+    </div>
+    <div>
+      <input type="button" value="Delete (This Hostname)" id="delete-hostname">
+      <input type="button" value="Delete (All Hostnames)" id="delete-all">
+    </div>
+
+    <div>
+      <input type="button" value="Cross-Origin Access" id="permission">
+    </div>
+    <h3>Run:</h3>
+    <div>
+      <input type="button" value="Start" id="start">
+      <input type="button" value="Terminate and Close" id="terminate">
+      <input type="button" value="Terminate all Instances and Close" id="terminate-all">
+      <span id="toast"></span>
+    </div>
+  </div>
+  <script type="text/javascript" src="index.js"></script>
+</body>
+</html>

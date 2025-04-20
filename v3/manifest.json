@@ -1,65 +1,29 @@
 {
-  "manifest_version": 2,
-  "version": "0.3.8",
+  "manifest_version": 3,
+  "version": "0.5.0",
   "name": "CORS Unblock",
   "description": "__MSG_description__",
   "default_locale": "en",
   "permissions": [
     "storage",
-    "<all_urls>",
-    "webRequest",
-    "webRequestBlocking",
     "declarativeNetRequest",
-    "contextMenus",
     "debugger"
   ],
-  "declarative_net_request" : {
-    "rule_resources" : [{
-      "id": "x-frame",
-      "enabled": false,
-      "path": "rulesets/x-frame.json"
-    }, {
-      "id": "overwrite-origin",
-      "enabled": false,
-      "path": "rulesets/overwrite-origin.json"
-    }, {
-      "id": "allow-credentials",
-      "enabled": false,
-      "path": "rulesets/allow-credentials.json"
-    }, {
-      "id": "allow-headers",
-      "enabled": false,
-      "path": "rulesets/allow-headers.json"
-    }, {
-      "id": "referer",
-      "enabled": false,
-      "path": "rulesets/referer.json"
-    }, {
-      "id": "csp",
-      "enabled": false,
-      "path": "rulesets/csp.json"
-    }, {
-      "id": "allow-shared-array-buffer",
-      "enabled": false,
-      "path": "rulesets/allow-shared-array-buffer.json"
-    }]
-  },
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "icons": {
-    "16": "/data/icons/16.png",
-    "32": "/data/icons/32.png",
-    "48": "/data/icons/48.png",
-    "64": "/data/icons/64.png",
-    "128": "/data/icons/128.png",
-    "256": "/data/icons/256.png",
-    "512": "/data/icons/512.png"
+    "16": "/data/icons/disabled/16.png",
+    "32": "/data/icons/disabled/32.png",
+    "48": "/data/icons/disabled/48.png",
+    "64": "/data/icons/disabled/64.png",
+    "128": "/data/icons/disabled/128.png",
+    "256": "/data/icons/disabled/256.png",
+    "512": "/data/icons/disabled/512.png"
   },
   "homepage_url": "https://webextension.org/listing/access-control.html",
-  "browser_action":{},
+  "action":{},
   "background": {
-    "scripts": [
-      "worker.js",
-      "context.js",
-      "v2.js"
-    ]
+    "service_worker": "worker.js"
   }
 }
