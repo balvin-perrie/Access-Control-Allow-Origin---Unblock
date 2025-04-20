@@ -72,6 +72,11 @@ document.querySelector('span[data-id="acao-3"]').textContent = o.origin;
 
 const update = async reason => {
   ttl('Running');
+  onbeforeunload = e => {
+    e.preventDefault(); // Some browsers require this
+    e.returnValue = ''; // Required for most browsers to show a prompt
+    return ''; // For older browsers
+  };
 
   await chrome.debugger.detach({tabId}).catch(() => {});
 
@@ -484,7 +489,9 @@ document.getElementById('terminate-all').onclick = async () => {
   });
   document.getElementById('terminate').click();
 };
-
+document.getElementById('test').onclick = () => chrome.tabs.create({
+  url: 'https://webbrowsertools.com/test-cors/'
+});
 document.getElementById('permission').onclick = e => chrome.permissions.request({
   origins: ['<all_urls>']
 }, granted => {
@@ -512,12 +519,6 @@ chrome.storage.local.get({
     });
   }
 });
-
-onbeforeunload = e => {
-  e.preventDefault(); // Some browsers require this
-  e.returnValue = ''; // Required for most browsers to show a prompt
-  return ''; // For older browsers
-};
 
 chrome.runtime.onMessage.addListener(request => {
   if (request.method === 'close-instance') {
