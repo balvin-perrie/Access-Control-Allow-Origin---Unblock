@@ -25,10 +25,17 @@ const DEFALUT_PREFS = {
   'content-security-policy-enabled': false,
   'fake-supported-methods': true,
   'fix-redirect-checkbox': false,
+  'fix-origin': false,
   'overwrite-4xx-checkbox': false,
   'overwrite-501-checkbox': false,
   'shared-array-buffer-enabled': true,
-  'x-frame-options-enabled': true
+  'x-frame-options-enabled': true,
+  'add-origin': false,
+  'aor-1': false,
+  'aor-2': true,
+  'add-referer': false,
+  'arr-1': false,
+  'arr-2': true
 };
 
 const args = new URLSearchParams(location.search);
@@ -287,15 +294,159 @@ const update = async reason => {
     document.getElementById('overwrite-4xx-checkbox').checked ||
     document.getElementById('overwrite-501-checkbox').checked ||
     document.getElementById('access-control-request-headers-enabled').checked ||
-    document.getElementById('fix-redirect-checkbox').checked
+    document.getElementById('fix-redirect-checkbox').checked ||
+    document.getElementById('add-origin').checked ||
+    document.getElementById('add-referer').checked
   ) {
+    const patterns = [];
+    if (
+      document.getElementById('overwrite-4xx-checkbox').checked ||
+      document.getElementById('overwrite-501-checkbox').checked ||
+      document.getElementById('access-control-request-headers-enabled').checked ||
+      document.getElementById('fix-redirect-checkbox').checked
+    ) {
+      patterns.push({requestStage: 'Response'});
+    }
+    if (
+      document.getElementById('add-origin').checked ||
+      document.getElementById('add-referer').checked
+    ) {
+      patterns.push({requestStage: 'Request'});
+    }
+
     await chrome.debugger.attach({tabId}, '1.3');
     await chrome.debugger.sendCommand({tabId}, 'Fetch.enable', {
-      patterns: [{
-        requestStage: 'Response'
-      }]
+      patterns
     });
   }
+};
+
+const observe = {};
+observe.response = (source, params) => {
+  const opts = {
+    requestId: params.requestId,
+    responseHeaders: params.responseHeaders || []
+  };
+  let overwrite = false;
+
+  if (document.getElementById('access-control-request-headers-enabled').checked) {
+    if (params.request?.method === 'OPTIONS') {
+      if ('Access-Control-Request-Headers' in params.request.headers) {
+        opts.responseHeaders.push({
+          name: 'Access-Control-Allow-Headers',
+          value: params.request.headers['Access-Control-Request-Headers']
+        });
+        overwrite = true;
+      }
+    }
+  }
+  if (document.getElementById('overwrite-4xx-checkbox').checked) {
+    if (params.responseStatusCode >= 400 && params.responseStatusCode < 500) {
+      opts.responseCode = 200;
+      overwrite = true;
+    }
+  }
+  if (document.getElementById('overwrite-501-checkbox').checked) {
+    if (params.responseStatusCode === 501) {
+      opts.responseCode = 200;
+      opts.body = btoa('Supported\n');
+      overwrite = true;
+    }
+  }
+
+  if (document.getElementById('fix-redirect-checkbox').checked) {
+    if (
+      params.responseStatusCode === 301 ||
+      params.responseStatusCode === 302
+    ) {
+      const loc = opts.responseHeaders.find(o => o.name === 'location');
+      const {origin} = new URL(loc.value);
+
+      const r = opts.responseHeaders.find(o => o.name === 'access-control-allow-origin');
+      if (r) {
+        if (r.value !== '*') {
+          opts.responseCode = params.responseStatusCode;
+          r.value = origin;
+          overwrite = true;
+        }
+      }
+      else {
+        opts.responseCode = params.responseStatusCode;
+        opts.responseHeaders.push({
+          'name': 'Access-Control-Allow-Origin',
+          'value': origin
+        });
+        overwrite = true;
+      }
+    }
+    if (params.redirectedRequestId) {
+      const origin = '*';
+      const r = opts.responseHeaders.find(o => o.name === 'access-control-allow-origin');
+      if (r) {
+        opts.responseCode = params.responseStatusCode;
+        r.value = origin;
+        overwrite = true;
+      }
+      else {
+        opts.responseCode = params.responseStatusCode;
+        opts.responseHeaders.push({
+          'name': 'Access-Control-Allow-Origin',
+          'value': origin
+        });
+        overwrite = true;
+      }
+    }
+  }
+
+  if (overwrite) {
+    chrome.debugger.sendCommand(source, 'Fetch.fulfillRequest', opts);
+  }
+  else {
+    chrome.debugger.sendCommand(source, 'Fetch.continueRequest', {
+      requestId: params.requestId
+    });
+  }
+};
+observe.request = (source, params) => {
+  const opts = {
+    requestId: params.requestId
+  };
+  const headers = new Map();
+  if (document.getElementById('add-origin').checked) {
+    const type = document.querySelector('[name="add-origin-radio"]:checked').value;
+    try {
+      if (type === 'same') {
+        const v = new URL(params.request.url);
+        headers.set('origin', v.origin);
+      }
+      else {
+        headers.set('origin', o.origin);
+      }
+    }
+    catch (e) {}
+  }
+  if (document.getElementById('add-referer').checked) {
+    const type = document.querySelector('[name="add-referer-radio"]:checked').value;
+    try {
+      if (type === 'same') {
+        headers.set('referer', params.request.url);
+      }
+      else if (type === 'page') {
+        headers.set('referer', o.href);
+      }
+    }
+    catch (e) {}
+  }
+  if (headers.size) {
+    opts.headers = Object.entries(params.request.headers).map(([name, value]) => ({
+      name,
+      value
+    }));
+    for (const [name, value] of headers) {
+      opts.headers.push({name, value});
+    }
+  }
+  chrome.debugger.sendCommand(source, 'Fetch.continueRequest', opts);
 };
 
 chrome.debugger.onEvent.addListener((source, method, params) => {
@@ -303,88 +454,11 @@ chrome.debugger.onEvent.addListener((source, method, params) => {
     return;
   }
   if (method === 'Fetch.requestPaused') {
-    const opts = {
-      requestId: params.requestId,
-      responseHeaders: params.responseHeaders || []
-    };
-    let overwrite = false;
-
-    if (document.getElementById('access-control-request-headers-enabled').checked) {
-      if (params.request?.method === 'OPTIONS') {
-        if ('Access-Control-Request-Headers' in params.request.headers) {
-          opts.responseHeaders.push({
-            name: 'Access-Control-Allow-Headers',
-            value: params.request.headers['Access-Control-Request-Headers']
-          });
-          overwrite = true;
-        }
-      }
-    }
-    if (document.getElementById('overwrite-4xx-checkbox').checked) {
-      if (params.responseStatusCode >= 400 && params.responseStatusCode < 500) {
-        opts.responseCode = 200;
-        overwrite = true;
-      }
-    }
-    if (document.getElementById('overwrite-501-checkbox').checked) {
-      if (params.responseStatusCode === 501) {
-        opts.responseCode = 200;
-        opts.body = btoa('Supported\n');
-        overwrite = true;
-      }
-    }
-
-    if (document.getElementById('fix-redirect-checkbox').checked) {
-      if (
-        params.responseStatusCode === 301 ||
-        params.responseStatusCode === 302
-      ) {
-        const loc = opts.responseHeaders.find(o => o.name === 'location');
-        const {origin} = new URL(loc.value);
-
-        const r = opts.responseHeaders.find(o => o.name === 'access-control-allow-origin');
-        if (r) {
-          if (r.value !== '*') {
-            opts.responseCode = params.responseStatusCode;
-            r.value = origin;
-            overwrite = true;
-          }
-        }
-        else {
-          opts.responseCode = params.responseStatusCode;
-          opts.responseHeaders.push({
-            'name': 'Access-Control-Allow-Origin',
-            'value': origin
-          });
-          overwrite = true;
-        }
-      }
-      if (params.redirectedRequestId) {
-        const origin = '*';
-        const r = opts.responseHeaders.find(o => o.name === 'access-control-allow-origin');
-        if (r) {
-          opts.responseCode = params.responseStatusCode;
-          r.value = origin;
-          overwrite = true;
-        }
-        else {
-          opts.responseCode = params.responseStatusCode;
-          opts.responseHeaders.push({
-            'name': 'Access-Control-Allow-Origin',
-            'value': origin
-          });
-          overwrite = true;
-        }
-      }
-    }
-
-    if (overwrite) {
-      chrome.debugger.sendCommand(source, 'Fetch.fulfillRequest', opts);
+    if (params.responseHeaders) {
+      observe.response(source, params);
     }
     else {
-      chrome.debugger.sendCommand(source, 'Fetch.continueRequest', {
-        requestId: params.requestId
-      });
+      observe.request(source, params);
     }
   }
 });

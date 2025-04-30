@@ -145,6 +145,30 @@
           </label>
         </td>
       </tr>
+      <tr>
+        <td>
+          <label>
+            <input type="checkbox" id="add-origin">
+            Add "origin" header based on request URL
+          </label>
+        </td>
+        <td>
+          <label><input type="radio" name="add-origin-radio" data-id="aor-1" value="page">Page Origin</label>
+          <label><input type="radio" name="add-origin-radio" data-id="aor-2" checked value="same">Request Origin</label>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <label>
+            <input type="checkbox" id="add-referer">
+            Add "referer" header
+          </label>
+        </td>
+        <td>
+          <label><input type="radio" name="add-referer-radio" data-id="arr-1" value="page">Page Address</label>
+          <label><input type="radio" name="add-referer-radio" data-id="arr-2" checked value="same">Request URL</label>
+        </td>
+      </tr>
     </table>
   </div>
   <div id="tools">
