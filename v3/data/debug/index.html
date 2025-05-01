@@ -8,27 +8,33 @@
 </head>
 <body>
   <div id="tip" class="hidden">
-    <span>Use "Terminate and Close" button to peacefully stop CORS unblocking for this tab</span>
+    <span>Use "Terminate" button to peacefully stop CORS unblocking for this tab</span>
     <input type="button" id="close-tip" value="×">
   </div>
   <div id="rules">
-    <form id="methods">
-      <p>
-        <label><input type="checkbox" name="GET" checked disabled>GET</label>
-        <label><input type="checkbox" name="PUT" checked>PUT</label>
-        <label><input type="checkbox" name="POST" checked>POST</label>
-        <label><input type="checkbox" name="DELETE" checked>DELETE</label>
-        <label><input type="checkbox" name="HEAD" checked>HEAD</label>
-        <label><input type="checkbox" name="OPTIONS" checked>OPTIONS</label>
-        <label><input type="checkbox" name="PATCH" checked>PATCH</label>
-        <label><input type="checkbox" name="PROPFIND">PROPFIND</label>
-        <label><input type="checkbox" name="PROPPATCH">PROPPATCH</label>
-        <label><input type="checkbox" name="MKCOL">MKCOL</label>
-        <label><input type="checkbox" name="COPY">COPY</label>
-        <label><input type="checkbox" name="MOVE">MOVE</label>
-        <label><input type="checkbox" name="LOCK">LOCK</label>
-      </p>
-    </form>
+    <div id="forms">
+      <form id="methods">
+        <p>
+          <label><input type="checkbox" name="GET" checked disabled>GET</label>
+          <label><input type="checkbox" name="PUT" checked>PUT</label>
+          <label><input type="checkbox" name="POST" checked>POST</label>
+          <label><input type="checkbox" name="DELETE" checked>DELETE</label>
+          <label><input type="checkbox" name="HEAD" checked>HEAD</label>
+          <label><input type="checkbox" name="OPTIONS" checked>OPTIONS</label>
+          <label><input type="checkbox" name="PATCH" checked>PATCH</label>
+          <label><input type="checkbox" name="PROPFIND">PROPFIND</label>
+          <label><input type="checkbox" name="PROPPATCH">PROPPATCH</label>
+          <label><input type="checkbox" name="MKCOL">MKCOL</label>
+          <label><input type="checkbox" name="COPY">COPY</label>
+          <label><input type="checkbox" name="MOVE">MOVE</label>
+          <label><input type="checkbox" name="LOCK">LOCK</label>
+        </p>
+      </form>
+      <form id="filters">
+        <label>Limit network's <a data-href="faq10">scope</a></label>
+        <input type="text" name="urlFilter" placeholder="e.g.: ||example.com/">
+      </form>
+    </div>
     <table>
       <tr>
         <td>
@@ -40,6 +46,10 @@
         <td>
           <label><input type="radio" name="access-control-allow-origin-radio" data-id="acao-1" value="*">*</label>
           <label><input type="radio" name="access-control-allow-origin-radio" data-id="acao-2" checked value="[origin]"><span data-id="acao-3"></span></label>
+          <label>
+            <input type="radio" name="access-control-allow-origin-radio" data-id="acao-4" value="[custom]">
+            <input type="text" data-id="acao-5" placeholder="Custom Origin">
+          </label>
         </td>
       </tr>
       <tr>
@@ -153,7 +163,7 @@
           </label>
         </td>
         <td>
-          <label><input type="radio" name="add-origin-radio" data-id="aor-1" value="page">Page Origin</label>
+          <label><input type="radio" name="add-origin-radio" data-id="aor-1" value="page">From Page</label>
           <label><input type="radio" name="add-origin-radio" data-id="aor-2" checked value="same">Request Origin</label>
         </td>
       </tr>
@@ -165,36 +175,32 @@
           </label>
         </td>
         <td>
-          <label><input type="radio" name="add-referer-radio" data-id="arr-1" value="page">Page Address</label>
+          <label><input type="radio" name="add-referer-radio" data-id="arr-1" value="page">From Page</label>
           <label><input type="radio" name="add-referer-radio" data-id="arr-2" checked value="same">Request URL</label>
         </td>
       </tr>
     </table>
   </div>
   <div id="tools">
-    <h3>Preferences:</h3>
-    <div>
-      <input type="button" value="Save (This Hostname)" id="save-hostname">
-      <input type="button" value="Save (All Hostnames)" id="save-all">
-    </div>
-    <div>
-      <input type="button" value="Load (All Hostnames)" id="load-all">
-      <input type="button" value="Load (This Hostname)" id="load-hostname">
-    </div>
-    <div>
-      <input type="button" value="Delete (This Hostname)" id="delete-hostname">
-      <input type="button" value="Delete (All Hostnames)" id="delete-all">
+    <div class="ftm">
+      <span>Preferences for <b>This Hostname</b></span>
+      <input type="button" value="Load" id="load-hostname">
+      <input type="button" value="Save" id="save-hostname">
+      <input type="button" value="Delete" id="delete-hostname">
+      <span>Preferences for <b>All Hostnames</b></span>
+      <input type="button" value="Load" id="load-all">
+      <input type="button" value="Save" id="save-all">
+      <input type="button" value="Delete" id="delete-all">
     </div>
 
     <div>
       <input type="button" value="Cross-Origin Access" id="permission">
     </div>
-    <h3>Run:</h3>
     <div>
       <input type="button" value="Test CORS" id="test">
       <input type="button" value="Start" id="start">
-      <input type="button" value="Terminate and Close" id="terminate">
-      <input type="button" value="Terminate all Instances and Close" id="terminate-all">
+      <input type="button" value="Terminate" id="terminate">
+      <input type="button" value="Terminate all Instances" id="terminate-all">
       <span id="toast"></span>
     </div>
   </div>

@@ -16,6 +16,7 @@ const DEFALUT_PREFS = {
   'acam-2': true,
   'acao-1': false,
   'acao-2': true,
+  'acao-4': false,
   'access-control-allow-credentials-enabled': true,
   'access-control-allow-headers-enabled': false,
   'access-control-allow-methods-checkbox': true,
@@ -93,6 +94,9 @@ const update = async reason => {
     let value = document.querySelector('input[name="access-control-allow-origin-radio"]:checked').value;
     if (value === '[origin]') {
       value = o.origin;
+    }
+    else if (value === '[custom]') {
+      value = document.querySelector('input[data-id="acao-5"]').value;
     }
     rules.push({
       id: START + 1,
@@ -283,10 +287,26 @@ const update = async reason => {
       }
     });
   }
+  // limit scope
+  const scope = document.querySelector('input[name="urlFilter"]').value;
+  if (scope) {
+    for (const rule of rules) {
+      if (rule.condition.resourceTypes) {
+        if (rule.condition.resourceTypes.includes('main_frame') || rule.condition.resourceTypes.includes('sub_frame')) {
+          continue;
+        }
+      }
+      rule.condition.urlFilter = scope;
+    }
+  }
+  console.info('[network rules]', rules);
 
   chrome.declarativeNetRequest.updateSessionRules({
     addRules: rules,
     removeRuleIds: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => START + n)
+  }).catch(e => {
+    console.error(e);
+    alert('Network modification failed:\n\n--\n' + e.message);
   });
 
   // Status code
@@ -466,7 +486,13 @@ chrome.debugger.onEvent.addListener((source, method, params) => {
 // update
 const load = prefs => {
   for (const input of document.querySelectorAll('#rules input')) {
-    input.checked = prefs[input.dataset.id || input.name || input.id];
+    const value = prefs[input.dataset.id || input.name || input.id];
+    if (input.type === 'radio' || input.type === 'checkbox') {
+      input.checked = value || false;
+    }
+    else {
+      input.value = value || '';
+    }
   }
 };
 chrome.storage.local.get(null, ps => {
@@ -498,7 +524,8 @@ document.getElementById('start').onclick = e => {
 document.getElementById('save-hostname').onclick = async () => {
   const prefs = {};
   for (const input of document.querySelectorAll('#rules input')) {
-    prefs[input.dataset.id || input.name || input.id] = input.checked;
+    const value = input.type === 'radio' || input.type === 'checkbox' ? input.checked : input.value;
+    prefs[input.dataset.id || input.name || input.id] = value;
   }
   await chrome.storage.local.set({
     ['prefs-' + o.hostname]: prefs
@@ -508,7 +535,8 @@ document.getElementById('save-hostname').onclick = async () => {
 document.getElementById('save-all').onclick = async () => {
   const prefs = {};
   for (const input of document.querySelectorAll('#rules input')) {
-    prefs[input.dataset.id || input.name || input.id] = input.checked;
+    const value = input.type === 'radio' || input.type === 'checkbox' ? input.checked : input.value;
+    prefs[input.dataset.id || input.name || input.id] = value;
   }
   await chrome.storage.local.set({
     ['prefs-*']: prefs
@@ -602,3 +630,10 @@ chrome.runtime.onMessage.addListener(request => {
     document.getElementById('terminate').click();
   }
 });
+
+// links
+for (const a of [...document.querySelectorAll('[data-href]')]) {
+  if (a.hasAttribute('href') === false) {
+    a.href = chrome.runtime.getManifest().homepage_url + '#' + a.dataset.href;
+  }
+}

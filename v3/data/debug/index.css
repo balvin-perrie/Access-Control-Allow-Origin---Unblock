@@ -4,8 +4,6 @@ body {
   background-color: #fff;
   color: #4d5156;
   display: grid;
-  grid-template-rows: 1fr min-content;
-  grid-gap: 10px;
   height: 100vh;
   margin: 0;
 }
@@ -54,20 +52,38 @@ table {
 }
 
 #methods {
-  padding-inline: 10px;
   label {
     white-space: nowrap;
   }
 }
+#filters {
+  display: grid;
+  grid-template-columns: min-content 1fr;
+  white-space: nowrap;
+  grid-gap: 5px;
+  align-items: center;
+}
+#forms {
+  background-color: #e4e4e4;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  margin-block-end: 20px;
+}
 #tools {
+  height: fit-content;
+  align-self: end;
   padding: 10px;
   display: grid;
   gap: 5px;
+  margin-block-start: 20px;
 
   & > div {
     display: flex;
-    flex-flow: wrap;
+    flex-flow: nowrap;
     gap: 5px;
+    overflow: hidden;
   }
 }
 #tip {
@@ -89,7 +105,14 @@ table {
 }
 #toast {
   align-self: center;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
 }
 .hidden {
   display: none !important;
+}
+.ftm {
+  display: grid !important;
+  grid-template-columns: 1fr repeat(3, min-content);
 }
