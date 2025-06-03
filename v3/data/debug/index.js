@@ -202,7 +202,7 @@ const update = async reason => {
         }]
       },
       condition: {
-        resourceTypes: ['sub_frame'],
+        resourceTypes: ['main_frame', 'sub_frame'],
         tabIds: [tabId]
       }
     });
@@ -637,3 +637,19 @@ for (const a of [...document.querySelectorAll('[data-href]')]) {
     a.href = chrome.runtime.getManifest().homepage_url + '#' + a.dataset.href;
   }
 }
+
+// Reactivate icon on reload
+chrome.tabs.onUpdated.addListener(id => {
+  if (id === tabId) {
+    if (onbeforeunload) {
+      chrome.action.setIcon({
+        tabId,
+        path: {
+          '16': '/data/icons/16.png',
+          '32': '/data/icons/32.png',
+          '48': '/data/icons/48.png'
+        }
+      });
+    }
+  }
+});
